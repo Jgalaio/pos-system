@@ -8,6 +8,7 @@ Sistema POS em Next.js para Vercel com base de dados Supabase.
 - Cada ticket impresso mostra apenas o nome do produto.
 - Backoffice para criar, editar, ativar e desativar artigos.
 - Relatório diário com total de vendas, artigos vendidos, resumo por produto, impressão e exportação CSV.
+- Impressão preparada para impressora térmica POS de 80mm.
 
 ## Supabase
 
@@ -34,3 +35,9 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_3mCd6IftoU5ZlvxpAI5BXg_YHfqO
 ```
 
 Depois liga o repositório ao Vercel e faz deploy normal de Next.js.
+
+## Impressora térmica
+
+Para imprimir sem abrir a caixa de diálogo do Windows, usa o POS num Chrome/Edge arrancado com `--kiosk-printing`.
+
+Vê as instruções em `PRINTING.md`.
