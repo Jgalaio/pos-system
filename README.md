@@ -6,9 +6,18 @@ Sistema POS em Next.js para Vercel com base de dados Supabase.
 
 - Frente de venda com carrinho, método de pagamento e impressão automática de tickets.
 - Cada ticket impresso mostra apenas o nome do produto.
-- Backoffice para criar, editar, ativar e desativar artigos.
+- Zona Admin para criar, editar, ativar e desativar artigos.
 - Relatório diário com total de vendas, artigos vendidos, resumo por produto, impressão e exportação CSV.
 - Impressão preparada para impressora térmica POS de 80mm.
+
+## Admin
+
+Credenciais da zona Admin:
+
+```txt
+User: Admin
+Pass: 21051986
+```
 
 ## Supabase
 

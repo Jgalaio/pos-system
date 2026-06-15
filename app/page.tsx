@@ -6,13 +6,15 @@ import {
   Check,
   Download,
   Edit3,
-  PackagePlus,
+  LogIn,
+  LogOut,
   Plus,
   Printer,
   ReceiptText,
   RefreshCw,
   Save,
   Search,
+  ShieldCheck,
   ShoppingCart,
   Trash2,
   X
@@ -54,8 +56,15 @@ type Sale = {
   sale_items: SaleItem[];
 };
 
-type ActiveTab = "pos" | "artigos" | "relatorios";
+type ActiveTab = "pos" | "admin" | "relatorios";
 type PrintMode = "tickets" | "report" | null;
+
+const adminCredentials = {
+  username: "Admin",
+  password: "21051986"
+};
+
+const adminSessionKey = "pos-admin-authenticated";
 
 const paymentMethods = [
   { value: "numerario", label: "Numerário" },
@@ -137,6 +146,10 @@ export default function Home() {
   const [lastTickets, setLastTickets] = useState<string[]>([]);
   const [printMode, setPrintMode] = useState<PrintMode>(null);
   const [saleConfirmOpen, setSaleConfirmOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminUser, setAdminUser] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [adminError, setAdminError] = useState("");
 
   const activeProducts = useMemo(
     () =>
@@ -253,6 +266,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    setIsAdmin(window.sessionStorage.getItem(adminSessionKey) === "true");
+  }, []);
+
+  useEffect(() => {
     loadSales();
   }, [selectedDate]);
 
@@ -312,12 +329,16 @@ export default function Home() {
       active: product.active
     });
     setEditingProductId(product.id);
-    setActiveTab("artigos");
+    setActiveTab("admin");
   };
 
   const saveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!supabase) return;
+    if (!isAdmin) {
+      setErrorMessage("Inicia sessão como admin para alterar artigos.");
+      return;
+    }
 
     const price = parsePrice(productForm.price);
     if (!productForm.name.trim()) {
@@ -367,6 +388,10 @@ export default function Home() {
 
   const toggleProductActive = async (product: Product) => {
     if (!supabase) return;
+    if (!isAdmin) {
+      setErrorMessage("Inicia sessão como admin para alterar artigos.");
+      return;
+    }
     setErrorMessage("");
 
     const { error } = await supabase
@@ -479,6 +504,32 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const loginAdmin = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAdminError("");
+
+    if (adminUser === adminCredentials.username && adminPass === adminCredentials.password) {
+      window.sessionStorage.setItem(adminSessionKey, "true");
+      setIsAdmin(true);
+      setAdminPass("");
+      setMessage("Sessão admin iniciada.");
+      setErrorMessage("");
+      return;
+    }
+
+    setAdminError("Utilizador ou password inválidos.");
+  };
+
+  const logoutAdmin = () => {
+    window.sessionStorage.removeItem(adminSessionKey);
+    setIsAdmin(false);
+    setAdminUser("");
+    setAdminPass("");
+    resetProductForm();
+    setMessage("Sessão admin terminada.");
+    setErrorMessage("");
+  };
+
   if (!supabaseConfigured || !supabase) {
     return (
       <main className="setup-page">
@@ -517,12 +568,12 @@ export default function Home() {
               POS
             </button>
             <button
-              className={activeTab === "artigos" ? "active" : ""}
-              onClick={() => setActiveTab("artigos")}
+              className={activeTab === "admin" ? "active" : ""}
+              onClick={() => setActiveTab("admin")}
               type="button"
             >
-              <PackagePlus size={18} />
-              Artigos
+              <ShieldCheck size={18} />
+              Admin
             </button>
             <button
               className={activeTab === "relatorios" ? "active" : ""}
@@ -685,113 +736,161 @@ export default function Home() {
           </section>
         )}
 
-        {activeTab === "artigos" && (
-          <section className="admin-layout" aria-label="Backoffice de artigos">
-            <form className="tool-panel product-form" onSubmit={saveProduct}>
-              <div className="panel-heading">
-                <div>
-                  <span className="eyebrow">Backoffice</span>
-                  <h2>{editingProductId ? "Editar artigo" : "Novo artigo"}</h2>
-                </div>
-                {editingProductId && (
-                  <button className="icon-button" onClick={resetProductForm} type="button" title="Cancelar">
-                    <X size={18} />
-                  </button>
-                )}
-              </div>
-
-              <label>
-                Nome
-                <input
-                  value={productForm.name}
-                  onChange={(event) =>
-                    setProductForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  placeholder="Cerveja"
-                />
-              </label>
-
-              <label>
-                Preço
-                <input
-                  inputMode="decimal"
-                  value={productForm.price}
-                  onChange={(event) =>
-                    setProductForm((current) => ({ ...current, price: event.target.value }))
-                  }
-                  placeholder="1,50"
-                />
-              </label>
-
-              <label>
-                Categoria
-                <input
-                  value={productForm.category}
-                  onChange={(event) =>
-                    setProductForm((current) => ({ ...current, category: event.target.value }))
-                  }
-                  placeholder="Bebidas"
-                />
-              </label>
-
-              <label className="switch-line">
-                <input
-                  type="checkbox"
-                  checked={productForm.active}
-                  onChange={(event) =>
-                    setProductForm((current) => ({ ...current, active: event.target.checked }))
-                  }
-                />
-                Ativo no POS
-              </label>
-
-              <button className="primary-button" type="submit" disabled={savingProduct}>
-                {editingProductId ? <Save size={18} /> : <Plus size={18} />}
-                {savingProduct ? "A guardar" : editingProductId ? "Guardar" : "Criar artigo"}
-              </button>
-            </form>
-
-            <div className="tool-panel product-list-panel">
-              <div className="panel-heading">
-                <div>
-                  <span className="eyebrow">Catálogo</span>
-                  <h2>{products.length} artigos</h2>
-                </div>
-                <button className="icon-button" onClick={loadProducts} type="button" title="Atualizar">
-                  <RefreshCw size={18} />
-                </button>
-              </div>
-
-              <div className="table-like">
-                {products.map((product) => (
-                  <div className="product-row" key={product.id}>
+        {activeTab === "admin" && (
+          <>
+            {!isAdmin ? (
+              <section className="admin-login-layout" aria-label="Login admin">
+                <form className="tool-panel admin-login-panel" onSubmit={loginAdmin}>
+                  <div className="panel-heading">
                     <div>
-                      <strong>{product.name}</strong>
-                      <span>{product.category || "Sem categoria"}</span>
+                      <span className="eyebrow">Admin</span>
+                      <h2>Entrada restrita</h2>
                     </div>
-                    <strong>{formatMoney(product.price)}</strong>
-                    <span className={product.active ? "status active" : "status inactive"}>
-                      {product.active ? "Ativo" : "Inativo"}
-                    </span>
-                    <div className="row-actions">
-                      <button className="icon-button" onClick={() => editProduct(product)} type="button" title="Editar">
-                        <Edit3 size={17} />
-                      </button>
-                      <button
-                        className="icon-button"
-                        onClick={() => toggleProductActive(product)}
-                        type="button"
-                        title={product.active ? "Desativar" : "Ativar"}
-                      >
-                        {product.active ? <X size={17} /> : <Check size={17} />}
-                      </button>
-                    </div>
+                    <ShieldCheck size={24} />
                   </div>
-                ))}
-                {!products.length && <p className="empty-state">Sem artigos.</p>}
-              </div>
-            </div>
-          </section>
+
+                  {adminError && <div className="notice error">{adminError}</div>}
+
+                  <label>
+                    Utilizador
+                    <input
+                      autoComplete="username"
+                      value={adminUser}
+                      onChange={(event) => setAdminUser(event.target.value)}
+                      placeholder="Admin"
+                    />
+                  </label>
+
+                  <label>
+                    Password
+                    <input
+                      autoComplete="current-password"
+                      type="password"
+                      value={adminPass}
+                      onChange={(event) => setAdminPass(event.target.value)}
+                      placeholder="Password"
+                    />
+                  </label>
+
+                  <button className="primary-button" type="submit">
+                    <LogIn size={18} />
+                    Entrar
+                  </button>
+                </form>
+              </section>
+            ) : (
+              <section className="admin-layout" aria-label="Zona admin">
+                <form className="tool-panel product-form" onSubmit={saveProduct}>
+                  <div className="panel-heading">
+                    <div>
+                      <span className="eyebrow">Admin</span>
+                      <h2>{editingProductId ? "Editar artigo" : "Novo artigo"}</h2>
+                    </div>
+                    {editingProductId ? (
+                      <button className="icon-button" onClick={resetProductForm} type="button" title="Cancelar">
+                        <X size={18} />
+                      </button>
+                    ) : (
+                      <button className="icon-button" onClick={logoutAdmin} type="button" title="Sair">
+                        <LogOut size={18} />
+                      </button>
+                    )}
+                  </div>
+
+                  <label>
+                    Nome
+                    <input
+                      value={productForm.name}
+                      onChange={(event) =>
+                        setProductForm((current) => ({ ...current, name: event.target.value }))
+                      }
+                      placeholder="Cerveja"
+                    />
+                  </label>
+
+                  <label>
+                    Preço
+                    <input
+                      inputMode="decimal"
+                      value={productForm.price}
+                      onChange={(event) =>
+                        setProductForm((current) => ({ ...current, price: event.target.value }))
+                      }
+                      placeholder="1,50"
+                    />
+                  </label>
+
+                  <label>
+                    Categoria
+                    <input
+                      value={productForm.category}
+                      onChange={(event) =>
+                        setProductForm((current) => ({ ...current, category: event.target.value }))
+                      }
+                      placeholder="Bebidas"
+                    />
+                  </label>
+
+                  <label className="switch-line">
+                    <input
+                      type="checkbox"
+                      checked={productForm.active}
+                      onChange={(event) =>
+                        setProductForm((current) => ({ ...current, active: event.target.checked }))
+                      }
+                    />
+                    Ativo no POS
+                  </label>
+
+                  <button className="primary-button" type="submit" disabled={savingProduct}>
+                    {editingProductId ? <Save size={18} /> : <Plus size={18} />}
+                    {savingProduct ? "A guardar" : editingProductId ? "Guardar" : "Criar artigo"}
+                  </button>
+                </form>
+
+                <div className="tool-panel product-list-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span className="eyebrow">Catálogo</span>
+                      <h2>{products.length} artigos</h2>
+                    </div>
+                    <button className="icon-button" onClick={loadProducts} type="button" title="Atualizar">
+                      <RefreshCw size={18} />
+                    </button>
+                  </div>
+
+                  <div className="table-like">
+                    {products.map((product) => (
+                      <div className="product-row" key={product.id}>
+                        <div>
+                          <strong>{product.name}</strong>
+                          <span>{product.category || "Sem categoria"}</span>
+                        </div>
+                        <strong>{formatMoney(product.price)}</strong>
+                        <span className={product.active ? "status active" : "status inactive"}>
+                          {product.active ? "Ativo" : "Inativo"}
+                        </span>
+                        <div className="row-actions">
+                          <button className="icon-button" onClick={() => editProduct(product)} type="button" title="Editar">
+                            <Edit3 size={17} />
+                          </button>
+                          <button
+                            className="icon-button"
+                            onClick={() => toggleProductActive(product)}
+                            type="button"
+                            title={product.active ? "Desativar" : "Ativar"}
+                          >
+                            {product.active ? <X size={17} /> : <Check size={17} />}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {!products.length && <p className="empty-state">Sem artigos.</p>}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
         )}
 
         {activeTab === "relatorios" && (

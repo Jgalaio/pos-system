@@ -152,6 +152,7 @@ button:disabled {
 
 .pos-layout,
 .admin-layout,
+.admin-login-layout,
 .report-layout {
   display: grid;
   gap: 18px;
@@ -163,6 +164,10 @@ button:disabled {
 
 .admin-layout {
   grid-template-columns: 390px minmax(0, 1fr);
+}
+
+.admin-login-layout {
+  justify-items: center;
 }
 
 .tool-panel {
@@ -370,7 +375,8 @@ button:disabled {
 }
 
 .payment-box label,
-.product-form label {
+.product-form label,
+.admin-login-panel label {
   color: var(--muted);
   display: grid;
   gap: 7px;
@@ -378,7 +384,8 @@ button:disabled {
 }
 
 .payment-box select,
-.product-form input {
+.product-form input,
+.admin-login-panel input {
   background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -386,6 +393,13 @@ button:disabled {
   min-height: 44px;
   outline: 0;
   padding: 0 12px;
+  width: 100%;
+}
+
+.admin-login-panel {
+  display: grid;
+  gap: 14px;
+  max-width: 440px;
   width: 100%;
 }
 
