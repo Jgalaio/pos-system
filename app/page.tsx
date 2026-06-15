@@ -1034,7 +1034,8 @@ function PrintSurface({
         <div className="ticket-sheet">
           {tickets.map((ticket, index) => (
             <article className="ticket-print" key={`${ticket}-${index}`}>
-              {ticket}
+              <img className="ticket-logo" src="/q26-logo.svg" alt="Q26" />
+              <span className="ticket-name">{ticket}</span>
             </article>
           ))}
         </div>
