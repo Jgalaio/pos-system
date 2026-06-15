@@ -4,7 +4,6 @@ import {
   BarChart3,
   CalendarDays,
   Check,
-  ClipboardList,
   Download,
   Edit3,
   PackagePlus,
@@ -137,6 +136,7 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [lastTickets, setLastTickets] = useState<string[]>([]);
   const [printMode, setPrintMode] = useState<PrintMode>(null);
+  const [saleConfirmOpen, setSaleConfirmOpen] = useState(false);
 
   const activeProducts = useMemo(
     () =>
@@ -384,6 +384,7 @@ export default function Home() {
   const submitSale = async () => {
     if (!supabase || !cart.length) return;
 
+    setSaleConfirmOpen(false);
     setSubmittingSale(true);
     setErrorMessage("");
     setMessage("");
@@ -663,7 +664,7 @@ export default function Home() {
                 </div>
                 <button
                   className="primary-button"
-                  onClick={submitSale}
+                  onClick={() => setSaleConfirmOpen(true)}
                   type="button"
                   disabled={!cart.length || submittingSale}
                 >
@@ -901,6 +902,18 @@ export default function Home() {
         )}
       </div>
 
+      {saleConfirmOpen && (
+        <SaleConfirmDialog
+          cart={cart}
+          cartQuantity={cartQuantity}
+          cartTotal={cartTotal}
+          paymentMethod={paymentMethod}
+          submittingSale={submittingSale}
+          onCancel={() => setSaleConfirmOpen(false)}
+          onConfirm={submitSale}
+        />
+      )}
+
       <PrintSurface
         mode={printMode}
         tickets={lastTickets}
@@ -909,6 +922,90 @@ export default function Home() {
         reportSummary={reportSummary}
       />
     </main>
+  );
+}
+
+function SaleConfirmDialog({
+  cart,
+  cartQuantity,
+  cartTotal,
+  paymentMethod,
+  submittingSale,
+  onCancel,
+  onConfirm
+}: {
+  cart: CartLine[];
+  cartQuantity: number;
+  cartTotal: number;
+  paymentMethod: string;
+  submittingSale: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="confirm-backdrop" role="presentation">
+      <section
+        aria-labelledby="sale-confirm-title"
+        aria-modal="true"
+        className="confirm-dialog"
+        role="dialog"
+      >
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">Pedido</span>
+            <h2 id="sale-confirm-title">Validar pedido</h2>
+          </div>
+          <button className="icon-button" onClick={onCancel} type="button" title="Fechar">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="confirm-lines">
+          {cart.map((line) => (
+            <div className="confirm-line" key={line.product.id}>
+              <div>
+                <strong>{line.product.name}</strong>
+                <span>
+                  {line.quantity} x {formatMoney(line.product.price)}
+                </span>
+              </div>
+              <strong>{formatMoney(Number(line.product.price) * line.quantity)}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="confirm-summary">
+          <div>
+            <span>Tickets</span>
+            <strong>{cartQuantity}</strong>
+          </div>
+          <div>
+            <span>Pagamento</span>
+            <strong>{paymentLabel(paymentMethod)}</strong>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong>{formatMoney(cartTotal)}</strong>
+          </div>
+        </div>
+
+        <div className="confirm-actions">
+          <button className="secondary-button" onClick={onCancel} type="button">
+            <X size={18} />
+            Corrigir
+          </button>
+          <button
+            className="primary-button"
+            disabled={submittingSale}
+            onClick={onConfirm}
+            type="button"
+          >
+            <Printer size={18} />
+            {submittingSale ? "A registar" : "Confirmar e imprimir"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
