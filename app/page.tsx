@@ -550,7 +550,7 @@ export default function Home() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              <ReceiptText size={22} />
+              <img src="/q26-logo.jpg" alt="Q26" />
             </span>
             <div>
               <h1>POS Tickets</h1>
